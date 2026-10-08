@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Guardian Jets AI</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          'sans': ['Inter', 'ui-sans-serif', 'system-ui'],
+          'serif': ['Crimson Pro', 'serif']
+        },
+        colors: {
+          'primary': {
+            50: '#eff6ff',
+            100: '#dbeafe',
+            500: '#2280BC',
+            600: '#1e6fa3',
+            700: '#1a5e8a'
+          },
+          'secondary': {
+            500: '#2280BC',
+            600: '#1e6fa3'
+          },
+          'gold': {
+            500: '#f59e0b',
+            600: '#d97706'
+          },
+          'custom': {
+            'bg': '#010D24',
+            'chat': '#ECECEC',
+            'message': '#F8F8F8',
+            'text': '#2280BC'
+          }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .loader {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .85s linear infinite;
+    vertical-align: -3px;
+    margin-right: 6px;
+  }
+  
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #2280BC;
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #1e6fa3;
+  }
+  
+  .prose {
+    color: black !important;
+  }
+
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: black !important;
+  }
+  
+  .prose p, .prose li, .prose td {
+    color: black !important;
+  }
+  
+  .prose strong {
+    color: #2280BC !important;
+    font-weight: 700;
+  }
+  
+  .prose table {
+    border: 1px solid #2280BC !important;
+  }
+  
+  .prose th {
+    background-color: #ECECEC !important;
+    border: 1px solid #2280BC !important;
+    color: black !important;
+  }
+  @keyframes spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+  
+  .prose td {
+    border: 1px solid #2280BC !important;
+    background-color: #F8F8F8 !important;
+    color: black !important;
+  }
+  @media (max-width: 768px) {
+  .flex.gap-8 {
+    flex-direction: column;
+  }
+  .flex.gap-8 > div {
+    width: 100% !important;
+  }
+}
+</style>
+
+<!-- Markdown + sanitize (fallback-safe) -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script>
+  marked.setOptions({ gfm:true, breaks:true, headerIds:false, mangle:false });
+
+  // ===== Helpers =====
+  const CORE_SKIP_KEYS = new Set([
+    // identity / meta
+    "listing_id","airframe_serial_number","manufacturer","model","model_year",
+    "date_hours_last_updated","date_listed","days_on_market","listing_broker","seller","physical_location",
+    // value & calc
+    "asking_price","guardian_jet_estimated_value","adjusted_value",
+    "airframe_total_time","left_engine_hours_since_new","right_engine_hours_since_new",
+    "left_engine_hours_since_overhauled","right_engine_hours_since_overhauled",
+    "airframe_total_time_value_adjustment","engine_maintenance_program_value_adjustment",
+    "auxiliary_power_unit_value_adjustment","damage_devaluation","interior_value_adjustment",
+    "new_interior_value_adjustment","paint_value_adjustment","new_paint_value_adjustment",
+    "airframe_total_time_engine_adjustment","total_options_and_adjustments_to_value",
+    "base_value_for_model_year"
+  ]);
+
+  function tryParseJSON(input) {
+    if (input && typeof input === "object") return input;
+    if (typeof input !== "string") return null;
+    const s = input.trim();
+    if (!s || (s[0] !== "{" && s[0] !== "[")) return null;
+    try { return JSON.parse(s); } catch { return null; }
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  const isFiniteNum = n => typeof n === "number" && isFinite(n);
+
+  function moneyShortUSD(n){
+    if (n === "Make Offer") return n
+    try {
+      if (typeof n === "string" && !isNaN(n)) {
+        n = parseFloat(n);
+      }
+    } catch (e) {
+      console.info(e);
+    }
+    if (!isFiniteNum(n)) return "—";
+    const abs = Math.abs(n);
+    if (abs >= 1e9) return `$${(n/1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `$${(n/1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `$${(n/1e3).toFixed(1)}k`;
+    return `$${n.toLocaleString()}`;
+  }
+
+  function fmtMaybeMoney(n) {
+    if (n == null) return "—";
+    return moneyShortUSD(n);
+  }
+
+  function fmtNum(n) {
+    if (n == null) return "—";
+    if (typeof n === "number") return n.toLocaleString();
+    return String(n);
+    }
+
+  function onlyDate(s){
+    if (!s) return "—";
+    return String(s).slice(0,10);
+  }
+
+  function looksLikeListings(rows){
+    const r = rows?.[0];
+    return r && typeof r === "object" &&
+           ("airframe_serial_number" in r) &&
+           ("model_year" in r) &&
+           ("manufacturer" in r) &&
+           ("model" in r);
+  }
+
+  // Extract option/equipment tags: any numeric > 0 field not in the core skip set
+  function extractOptionTags(record){
+    const tags = [];
+    for (const k of Object.keys(record)){
+      if (CORE_SKIP_KEYS.has(k)) continue;
+      let v = record[k];
+      try {
+        if (typeof v === "string" && !isNaN(v)) {
+          v = parseFloat(v);
+        }
+      } catch (e) {
+        console.info(e);
+      }
+
+      if (typeof v === "number" && v > 0){
+        tags.push(k);
+      }
+    }
+    return tags;
+  }
+
+  // ===== Renderers =====
+  function renderAircraftCards(rows) {
+    return `
+      <div class="flex flex-col gap-5 mt-2">
+        ${rows.map(r => `
+          <div class="rounded-2xl p-4 sm:p-5 shadow-lg relative overflow-hidden" style="background-color: #F8F8F8; border: 1px solid #2280BC;">
+            <!-- Top accent border -->
+            <div class="absolute top-0 left-0 right-0 h-1 bg-secondary-500"></div>
+            
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between mb-2 gap-2">
+              <div class="flex flex-col gap-1">
+                <div class="font-serif text-md sm:text-lg font-bold leading-tight" style="color: black;">${escapeHtml(r.manufacturer)} ${escapeHtml(r.model)}</div>
+                <div class="text-sm font-semibold flex justify-between" style="color: black;">Model Year ${escapeHtml(r.model_year)}
+                  <div class="text-sm font-medium font-mono tracking-wide pl-4" style="color: black; opacity: 0.7;">S/N: ${escapeHtml(r.airframe_serial_number)}</div>
+                </div>
+              </div>
+              <div class="text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md whitespace-nowrap self-start" style="background-color: #2280BC;">
+                Location: ${escapeHtml(r.physical_location)}
+              </div>
+            </div>
+
+            <!-- Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 my-3">
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Asking Price</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${r.asking_price == null ? "—" : moneyShortUSD(r.asking_price)}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Guardian Est.</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${r.guardianjet_estimated_value ? fmtMaybeMoney(r.guardianjet_estimated_value) : fmtMaybeMoney(r.guardian_jet_estimated_value)}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Adjusted Value</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${fmtMaybeMoney(r.adjusted_value)}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Total Hours</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${fmtNum(r.airframe_total_time)}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Days On Market</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${fmtNum(r.days_on_market)}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">
+                  ${r.date_sold ? "Sold At" : "Listed At"}
+                </div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">
+                  ${onlyDate(r.date_sold ?? r.date_listed ?? "—")}
+                </div>
+              </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Listing Broker</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${escapeHtml(r.listing_broker ?? "—")}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Seller</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${escapeHtml(r.seller ?? "—")}</div>
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">AFTT</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">
+                ${escapeHtml(
+                  r.airframe_total_time_value_adjustment != null
+                    ? new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                        .format(r.airframe_total_time_value_adjustment)
+                    : "—"
+                )}
+              </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">APU</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${escapeHtml(r.auxiliary_power_unit_value_adjustment ?? "—")}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Left Engine Hours</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${escapeHtml(r.left_engine_hours_since_new ?? "—")}</div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="text-xs sm:text-xs font-semibold uppercase tracking-wide" style="color: black; opacity: 0.7;">Right Engine Hours</div>
+                <div class="font-serif text-sm sm:text-sm leading-tight" style="color: #2280BC;">${escapeHtml(r.right_engine_hours_since_new ?? "—")}</div>
+              </div>
+            </div>
+
+            ${(() => {
+              const tags = extractOptionTags(r);
+              return tags.length ? `
+                <div class="flex flex-wrap gap-2 mt-2 pt-2" style="border-top: 1px solid #2280BC;">
+                  ${tags.map(t => `
+                    <span class="px-3 py-1.5 rounded-lg text-sm font-semibold hover:shadow-md cursor-default" style="background-color: #ECECEC; border: 1px solid #2280BC; color: black;" onmouseover="this.style.backgroundColor='#2280BC'; this.style.color='white';" onmouseout="this.style.backgroundColor='#ECECEC'; this.style.color='black';">
+                      ${escapeHtml(t.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}
+                    </span>
+                  `).join("")}
+                </div>
+              ` : "";
+            })()}
+          </div>
+        `).join("")}
+      </div>`;
+  }
+
+  function renderTableFromRows(rows){
+    if (!rows?.length) return null;
+    const cols = Array.from(rows.reduce((s, r) => {
+      if (r && typeof r === "object" && !Array.isArray(r)){
+        Object.keys(r).forEach(k => s.add(k));
+      }
+      return s;
+    }, new Set()));
+    if (!cols.length) return null;
+
+    const thead = `<thead style="background-color: #ECECEC;"><tr>${cols.map(c=>`<th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide" style="border: 1px solid #2280BC; color: black;">${escapeHtml(c)}</th>`).join("")}</tr></thead>`;
+    const tbody = `<tbody>${
+      rows.map(r => `<tr onmouseover="this.style.backgroundColor='#ECECEC';" onmouseout="this.style.backgroundColor='#F8F8F8';" style="background-color: #F8F8F8;">${cols.map(c=>`<td class="px-3 py-2 text-sm" style="border: 1px solid #2280BC; color: black;">${escapeHtml(r?.[c] ?? "")}</td>`).join("")}</tr>`).join("")
+    }</tbody>`;
+    return `<div class="overflow-auto rounded-lg mt-4" style="border: 1px solid #2280BC;"><table class="w-full border-collapse text-sm">${thead}${tbody}</table></div>`;
+  }
+
+  function jsonToRenderableHTML(json){
+    const rows = Array.isArray(json) ? json
+               : Array.isArray(json?.rows) ? json.rows
+               : Array.isArray(json?.data) ? json.data
+               : null;
+    if (!rows || !rows.length) return null;
+
+    if (looksLikeListings(rows)){
+      return renderAircraftCards(rows);
+    }
+    return renderTableFromRows(rows);
+  }
+
+  // ===== Chat wiring =====
+  function looksLikeMarkdown(s){
+    if(!s || typeof s !== 'string') return false;
+    return /\n\|.*\|\n\|[\s:-]+\|/.test(s)
+        || /^#{1,6}\s/m.test(s)
+        || /(^|\n)\s*[-*+]\s+/.test(s)
+        || /```/.test(s)
+        || /\*\*[^*]+\*\*/.test(s);
+  }
+
+  function renderMarkdown(htmlText){
+    htmlText = htmlText.replace(/^(.*)\|\|(.*)$/gm, (m, left, right) => {
+  return `<div class="flex">
+            <div class="w-1/2 text-left">${marked.parseInline(left.trim())}</div>
+            <div class="w-1/2 text-left ml-auto">${marked.parseInline(right.trim())}</div>
+          </div>`;
+});
+    const rawHtml = marked.parse(htmlText);
+    const clean = DOMPurify.sanitize(rawHtml, {USE_PROFILES: {html: true}});
+    const tmp = document.createElement('div');
+    tmp.innerHTML = clean;
+    tmp.querySelectorAll('table').forEach(t => {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-table-wrap';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
+    return tmp.innerHTML;
+  }
+
+  function addMessage(role, content, append=false){
+    const chatEl = document.getElementById('chat');
+    const last = chatEl.lastElementChild;
+    const jsonMaybe = tryParseJSON(content);
+
+    // Helper to append safely
+    function appendContent(bubble, content, jsonMaybe, role) {
+      if (jsonMaybe) {
+        const jsonEl = document.createElement("div");
+        jsonEl.innerHTML =
+          jsonToRenderableHTML(jsonMaybe) ||
+          escapeHtml(JSON.stringify(jsonMaybe));
+        bubble.appendChild(jsonEl);
+      } else if (role === "bot" && looksLikeMarkdown(content)) {
+        bubble.classList.add("prose", "prose-slate", "max-w-none");
+        const mdEl = document.createElement("div");
+        let rendered = renderMarkdown(content);
+
+        rendered = rendered.replace(
+          /^(?:•\s.*?)(?:\s*\|\|\s*)(•\s.*)$/gm,
+          (_, rightPart, leftPart) => {
+            const [left, right] = _.split("||").map(s => s.trim());
+            return `<div class="flex justify-between">
+                      <span>${left}</span>
+                      <span>${right}</span>
+                    </div>`;
+          }
+        );
+
+        mdEl.innerHTML = rendered;
+        bubble.appendChild(mdEl);
+      } else {
+        const textEl = document.createElement("div");
+        textEl.textContent = content; // auto escaped
+        bubble.appendChild(textEl);
+      }
+    }
+
+    // Append into previous bubble (same role)
+    if (append && last && last.classList.contains(role)) {
+      const bubble = last.querySelector(".bubble");
+      appendContent(bubble, content, jsonMaybe, role);
+      chatEl.scrollTop += 40;
+      return last;
+    }
+
+    // Create new row with Tailwind classes
+    const row = document.createElement("div");
+    row.className = `flex gap-4 mb-6 ${role}`;
+
+    // Avatar
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    if (role === "bot") {
+      avatar.className =
+        "w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white text-base font-semibold shadow-md flex-shrink-0";
+      avatar.innerHTML = '<span class="transform -rotate-12">✈</span>';
+    } else {
+      avatar.className =
+        "w-10 h-10 bg-secondary-500 rounded-xl flex items-center justify-center text-white text-base font-semibold shadow-md flex-shrink-0";
+      avatar.innerHTML = "<span style='filter: brightness(3)'>👤</span>";
+    }
+
+    // Bubble
+    const bubble = document.createElement("div");
+    bubble.className =
+      role === "bot"
+        ? "bubble rounded-xl p-4 sm:p-5 max-w-[85%] relative text-base font-medium leading-relaxed shadow-sm"
+        : "bubble rounded-xl p-4 sm:p-5 max-w-[85%] relative text-base font-medium leading-relaxed shadow-sm";
+    
+    // Apply custom colors via inline styles
+    bubble.style.backgroundColor = "#F8F8F8";
+    bubble.style.border = "1px solid #2280BC";
+    bubble.style.color = "black";
+
+    // Top accent border
+    const topBorder = document.createElement("div");
+    topBorder.className =
+      role === "bot"
+        ? "absolute top-0 left-0 right-0 h-1 bg-primary-500 rounded-t-xl"
+        : "absolute top-0 left-0 right-0 h-1 bg-secondary-500 rounded-t-xl";
+    bubble.appendChild(topBorder);
+
+    // Append content inside bubble
+    appendContent(bubble, content, jsonMaybe, role);
+
+    // Build row
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatEl.appendChild(row);
+
+    // Auto scroll
+    if (role === "user") {
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+    else {
+      chatEl.scrollTop += 200;
+    }
+    return row;
+  }
+
+  function setSending(sending){
+    const btn = document.getElementById('send');
+    const sendText = btn.querySelector('.send-text');
+    if(sending){
+      btn.disabled = true;
+      sendText.innerHTML = '<span class="loader"></span>Sending';
+    } else {
+      btn.disabled = false;
+      sendText.textContent = 'Send';
+    }
+  }
+
+  function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+
+}
+window.addEventListener("beforeunload", () => {
+  localStorage.removeItem("air_user_id");
+});
+  async function sendMessage(){
+    const inputEl = document.getElementById('input');
+    const txt = inputEl.value.trim();
+    if(!txt) return;
+    inputEl.value = '';
+    addMessage('user', txt);
+    setSending(true);
+
+    // Read API/USER from query/localStorage (kept your pattern)
+    const qs = new URLSearchParams(location.search);
+    const defaultApi = "http://127.0.0.1:8000/api/v1/aircraft/search";
+    const API_URL = (qs.get('api') || localStorage.getItem('air_api_url') || defaultApi).trim();
+     let USER_ID = qs.get('user_id') || localStorage.getItem('air_user_id');
+    if (!USER_ID) {
+      USER_ID = generateUUID();
+      localStorage.setItem('air_user_id', USER_ID);
+    }
+
+    console.log("USER_ID:", USER_ID, typeof USER_ID); // should be string
+
+    try{
+      const res = await fetch(API_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ query: txt, user_id: USER_ID })
+      });
+
+      const ct = res.headers.get('content-type')||'';
+      if (ct.includes('application/json')){
+        const j = await res.json();
+
+        // 1) Show the answer text (if any)
+        let answer = j.answer ?? j.output ?? j.text ?? '';
+        if (answer === 'None') {
+          answer = 'None'
+        } else if (String(answer).trim()){
+          addMessage('bot', String(answer));
+        } else {
+          addMessage('bot', 'Here are the results:');
+        }
+
+        // 2) Now render the records as cards (records can be a STRING that holds JSON)
+        let rec = j.records ?? j.data ?? j.rows ?? null;
+
+        if (answer === 'None' && rec === 'None') {
+          addMessage('bot', 'No Record Found!')
+          rec = null
+        } else if (rec === 'None'){
+          rec = null
+        }
+
+        if (typeof rec === 'string'){
+          // Remove potential stray quotes/whitespace then parse
+          const parsed = tryParseJSON(rec);
+          rec = parsed ?? rec; // if parse fails, render raw
+        }
+        if (rec){
+          // append into same bot bubble
+          addMessage('bot', rec, /*append*/ true);
+        }
+      } else {
+        const text = await res.text();
+        addMessage('bot', text);
+      }
+    }catch(err){
+      console.error(err);
+      addMessage('bot', 'Error connecting to server!');
+    }finally{
+      setSending(false);
+    }
+  }
+
+  // Boot
+  window.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('send').addEventListener('click', sendMessage);
+    document.getElementById('input').addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    document.getElementById('clearBtn').addEventListener('click', ()=> {
+      document.getElementById('chat').innerHTML = '';
+    });
+
+    // Initial greeting
+    const chatEl = document.getElementById('chat');
+    if (chatEl.children.length === 0){
+      addMessage('bot',
+`Welcome to Guardian Jets AI. I'm your elite aircraft intelligence assistant, specializing in comprehensive market analysis, aircraft valuations, and detailed listings data. Ask me about
+• **Active aircraft listings** and availability || • **Market comparables** and pricing analysis
+• **Aircraft specifications** and performance data || • **Valuation insights** and market trends
+
+How can I assist with your aviation needs today?`
+);
+    }
+  });
+</script>
+</head>
+<body class="font-sans max-h-screen flex justify-center overflow-x-hidden" style="background-color: white; color: black;">
+  <div class="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-6 relative z-10">
+    <!-- Header -->
+    <header id="topbar" class="flex flex-col lg:flex-row lg:items-center rounded-2xl p-6 lg:p-4 shadow-lg relative overflow-hidden" style="background-color: #F8F8F8; border: 1px solid #e1e1e1;">
+      <!-- Top accent border -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-primary-500"></div>
+      
+      <div class="flex items-center gap-4 mb-4 lg:mb-0">
+        <!-- Logo -->
+        <div class="w-12 h-12 bg-primary-500 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg hover:bg-primary-600">
+          <span class="transform -rotate-12">✈</span>
+        </div>
+        
+        <!-- Brand text -->
+        <div>
+          <h1 class="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight" style="color: #2280BC;">Guardian Jets AI</h1>
+          <div class="text-xs sm:text-sm font-medium uppercase tracking-wider mt-1" style="color: #2280BC; opacity: 0.7;">Elite Aircraft Intelligence</div>
+        </div>
+      </div>
+      
+      <!-- Spacer -->
+      <div class="flex-1"></div>
+      
+      <!-- Actions -->
+      <div class="flex gap-3 self-center lg:self-auto">
+        <button id="clearBtn" class="px-5 py-3 rounded-xl text-sm font-semibold hover:shadow-lg" style="background-color: #ECECEC; border: 1px solid #2280BC; color: black;" onmouseover="this.style.backgroundColor='#2280BC'; this.style.color='white';" onmouseout="this.style.backgroundColor='#ECECEC'; this.style.color='black';" title="Clear conversation">
+          Clear Chat
+        </button>
+      </div>
+    </header>
+
+    <!-- Chat Area -->
+    <div id="chat" class="rounded-2xl min-h-[65vh] max-h-[65vh] overflow-auto p-6 sm:p-8 shadow-lg custom-scrollbar" style="background-color: #ECECEC;" aria-live="polite"></div>
+
+    <!-- Input Composer -->
+    <div class="rounded-2xl p-5 shadow-lg relative overflow-hidden" style="background-color: #F8F8F8; border: 1px solid #e1e1e1;">
+      <!-- Top accent border -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-primary-500"></div>
+      
+      <div class="flex flex-col sm:flex-row gap-4 items-end">
+        <div class="flex-1 w-full">
+          <textarea 
+            id="input" 
+            placeholder="Ask about aircraft listings, pricing, specifications, or market analysis..." 
+            rows="2"
+            class="p-1 outline-none w-full rounded-xl resize-none outline-none text-base font-medium leading-relaxed transition-all duration-300 focus:shadow-lg focus:ring-4"
+            style="background-color: #ECECEC; border: 1px solid #2280BC; color: black;"
+            onfocus="this.style.backgroundColor='white'; this.style.borderColor='#2280BC'; this.style.boxShadow='0 0 0 4px rgba(34, 128, 188, 0.1)';"
+            onblur="this.style.backgroundColor='#ECECEC'; this.style.boxShadow='none';"
+          ></textarea>
+        </div>
+        
+        <button id="send" class="bg-primary-500 text-white border-0 px-6 sm:px-7 py-[0.9rem] rounded-xl text-base font-bold shadow-lg hover:bg-primary-600 -translate-y-3 hover:shadow-xl min-w-[100px] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-lg">
+          <span class="send-text">Send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast" class="fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-sm hidden" style="background-color: #F8F8F8; border: 1px solid #2280BC; color: black;"></div>
+</body>
+</html>

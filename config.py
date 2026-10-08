@@ -1,0 +1,87 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class Config:
+    def __init__(self) -> None:
+        self.ENV: str = os.getenv("ENV")
+        self.DATABASE_HOSTNAME: str = os.getenv("DATABASE_HOSTNAME", "")
+        self.DATABASE_PORT: int = int(os.getenv("DATABASE_PORT", 5432))
+        self.DATABASE_USERNAME: str = os.getenv("DATABASE_USERNAME", "")
+        self.DATABASE_PASSWORD: str = os.getenv("DATABASE_PASSWORD", "")
+        self.DATABASE_NAME: str = os.getenv("DATABASE_NAME", "")
+        self.OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+        self.PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
+        self.PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME")
+        self.EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL")
+        self.AIRCRAFT_SOLD_JSON_FILE_NAME: str = os.getenv("AIRCRAFT_SOLD_JSON_FILE_NAME")
+        self.AIRCRAFT_TO_BE_SOLD_JSON_FILE_NAME: str = os.getenv("AIRCRAFT_TO_BE_SOLD_JSON_FILE_NAME")
+        # self.FEATURE_VALUES = [
+        #     "Avionics","Communication & Internet","Interior","88 Parameter FDR", "Enhanced Nav",
+        #     "FANS 1/A-CPDLC","Synthetic Vision","XM Weather","Avance L5", "Starlink",
+        #     "Swift Broadband","Immarsat Ka (Honeywell Jetwave)", "Immarsat Ka (Satcom Direct)",
+        #     "Viasat Ku","Electric Pocket Door","Galley - AFT","Galley - FWD","Crew Rest Area",
+        #     "NO Crew Rest Area","Soundproofing Insulation"
+        # ]
+        self.FEATURE_VALUES = """[
+            {
+                "category": "Airframe",
+                "features": "{100E Model,100EV Model,100EX Model,2nd Refuel\/Defuel Panel,350i Extended Range,4 Blade Prop,4-Blade Props,5 Blade Prop,5 Blade Props,5 Blade Prop (Standard after 2015),7 Blade Prop,7 Tanks Auxiliary Fuel System,Advanced Performance Modification Group Package-APMG,Aft Stakes,Aft Strakes,Air Conditioning System,Amphibian,API Blended Winglets,ASC 190 (Gross Weight Mod),B Conversion,BLR Winglets,Cargo Config,Cargo Configuration,CB 228 - Eddy Current Inspection,CB 228 - MAUS Inspection,Challenger 3500,Crew Force Measuring System (Part 135 FDR Upgrade),Dassault Winglets,Design Weight Increase,Dunlop Wheel and Brake Upgrade (ASC 266),Elite,Emergency Floats,Emergency Vision Assurance System,Engine Fire Ext,Enhanced Leading Edge Inboard,ER Model,Falcon Care,FDR L3 (FA2100),Gear Door,Gen 2,GEN 2,Hi-Def Nose Gear Lights,High Float MLG,High-Float MLG,Increased MTOW (Std after SN 9485),LED Landing and Taxi Lighting,Long Range Oxygen,Low Cabin Altitude Upgrade,New Delivery Adjustment,Paint and Interior Deduction,Performance Leading Edges,Pilot Door,Pulse Lights,Quiet Flight,Raisbeck Mods,Ram Air Recovery,SECURITY SYSTEM UPGRADE,Ski Tube,SLS model,Speed Brake,TBM 900,TBM 910,TBM 930,TBM 940,TBM 960,Thrust Reversers,TKS Ice Protection,Turbo Fan Props,Windshield SB Complete \/ Scheduled,Winglet,Winglets,Wing lockers,Wing Lockers,Wing Plank Corrosion Corrected,XTI Model,Year model adjustment - 2016}"
+            },
+            {
+                "category": "APU",
+                "features": "{-150 APU,APU,APU 36-150 Upgrade,Honeywell 150 APU,Honeywell APU 150}"
+            },
+            {
+                "category": "Avionics",
+                "features": "{1 KHF-1050,2 KHF-1050,2nd ADF,2nd DME,2nd DME\/ADF,2nd FMS,2nd FMS 3000\/GPS 400A,2nd FMS\/GPS,2nd GPS,2nd GPS-4000S,2nd HF,2nd HF-9000,2nd Mode S,2nd Mode S Transponder,2nd Radio Altimeter,2nd refuel\/defuel panel,2nd Transponder,3D Map\/Long Rng Cruise,(3) Honeywell LASEREF,3rd FMS,3rd IRS,3rd LASEREF,3rd LASEREF IRS,3 rd LASERREF,3rd LASERREF,3rd VDR VHF Data Link,3-Tube EFIS,3-tube Pro Line 21,57 Parameter FDR,57 to 88 Parameter FDR Upgrade,5 tube EFIS (pre1985),88 Paramater FDR,88 Parameter FDR,88 Parameter FDR Upgrade,88 Parameters FDR,ADF,ADF - Single,ADS-B Out,ADS-B (Out),ADS-B OUT,ADS-B Out (DO-260B),ADS-B Out (Integrated),ADS-B Out (Stand alone),ADS-B Out (Standalone),ADS-B (Out) v2,ADS-B Out v2,ADS-B Out (v2),ADS-B-Out v.2,ADS-B Out V2,ADS-B (Out) v2- (STAND ALONE),ADS-Out Version 2,Advanced Avionics,AFIS,AFIS Global,AFIS Satellite,AFIS w\/SDCS,Aircraft Health and Trend Monitoring System,Altitude Alerter,ARGUS 7000 Moving Map,Artex C406-2 ELT,Autobrake,Auto Descent Mode,Automatic Descent Mode,Autopilot IFIS Collins,Auto Throttle for Proline 21,Autothrottles,Auto Throttles,Auxiliary Flight Data Acq. Unit,Batch 3 - ADS-B (Out) v2,Batch 3 Baseline,Batch 3 - Baseline,Batch 3 - FANS 1\/A-CPDLC,Batch 3 Upgrade (2005-2011),Batch 3 - WAAS\/LPV (SBAS),Blackhawk XP42,Blackhawk XP52,Blackhawk XP61,Block Point 3 Upgrade,Bombardier Enhanced Vision System (BEVS) and Head-Up Display (HUD),Chart View,CMF VDR w\/Graph WX,CMF w\/ VHF Link,CMU w\/3rd VHF,Collins 85 5-Tube Display,Collins AHRS,Collins ea FMS w\/LPV,Collins FMS w\/LPV,Collins FMS w\/ LPV,Collins Heads Up Guidance,Collins HF-9000,Collins IFIS,Collins LPV,Collins LPV (SN 001-0025 only),Collins ProLine 21,Collins Universal Graphical Wx,Collins Version 6.1 Upgrade,Compass AHRS,Compass: AHRS,CPDLC,CPDLC (EASA Link 2000+),CPDLC over ATN (EASA Link2000+),CPDLC over ATN (EASA LINK2000+),Crew Force Measuring System,CVR,CVR Provisions,Datalink Graphical Weather,Datalink (VDL Mode 2),Data Management,DBU-5000,Deluxe World Package,Digital FDR,DME (Dual),DME (Single),DU-875,DU-875 LCD Displays,DU-875 Modification,DU-875 Upgrade,DU-875 Upgrade (2005-2011),Dual ADF,Dual Chart Link,Dual Collins Mode S,Dual Collins Mod S,Dual Elec. Jeppesen Charts,Dual FMS,Dual GNS-530WA Comm\/Nav\/GPS Units,Dual GNS-XLS,Dual GTX-330D Transponders,Dual HF Comm w\/SELCAL,Dual Honeywell NZ-2000 FMS,Dual Laseref,Dual Laseref IVs,Dual Mode S,Dual Mode S TDR-94D,Dual TDR94D Xpdr w\/Flt ID,Dual UNS-1EW FMS w\/WAAS,Dual UNS-1K,Dual UNS-1L,E²VS - Embraer Enhanced Vision System,EASy II - ADS-B Out,EASy II - ADS-B Out v2,EASy II - ADS-B Out Version 2,EASy II - ATN & FANS 1\/A - CPDLC,EASy II - Auto Descent Mode,EASY II - Auto Descent Mode,EASy II Baseline,EASy II - Baseline,EASy II - CPDLC - ATN,EASy II - CPDLC - FANS 1A,EASy II - Dual Jeppesen Chart,EASy II - Dual Jeppesen Charts,EASy II - Enhanced Nav with WAAS,EASy II - FANS 1\/A,EASy II - FANS1\/A,EASy II - FANS 1\/A Only,EASy II - RAAS,EASy II - SVS,EAsy II - Synthetic Vision System,EASy II - Synthetic Vision System,EASy II UpGrades,EASy II - WAAS\/LPV,EASy II - XM Weather,EFB (Electronic Flight Bag),EFIS,EFIS - 5 Tube,EFIS - Universal 890R 3-Tube Display,EGPWS,Electronic Charts - Jeppesen,ELT C406-2,ELT w Nav Interface,Enhanced Nav,Enhanced Nav (ASC 084),Enhanced Nav with WAAS-LPV,Enhanced Vision and HUD,Enhanced Vision System,Enhanced Vision System (EVS),EVAS,EVS,EVS (2005-2011),EVS Provisions,EVS - Provisions,F1000 FDR,FA2100 FDR - L-3 Comm,Falcon Eye,FalconEye Dual HUD + Dual SVS,FANS 1\/A,FANS 1\/A+,FANS 1\/A CPDLC,FANS 1\/A - CPDLC,FANS 1\/A-CPDLC,FANS 1\/A+ CPDLC,FANS 1\/A CPDLC Capability,FANS 1\/A - CPDLC - PL 21,FANS 1\/A - CPDLC (Stand alone),FANS 1A\/CPDLC Stand-Alone,FANS 1\/A+ (Inmarsat),FANS 1\/A+ (Iridium),FANS 1\/A Over Iridium (FOI),FANS \/ CPDLC,FANS\/CPDLC,FANS over Iridium (FOI),FAR Part 135,FDR,FDR\/CVR Combination,FDR (FA2100),FDR JAA,FDR L3 (FA2100),Flight Data Recorder,Flight Data Recorder (ICAO Type IA) - L-3 Communications,Flight Deck Printer,Flight Phone: Aircell ST3100,FMS 4D Trajectory,FMS 6.1,FMS 6.1 Upgrade - (WAAS - LPV\/RNP),FMS 6.1 WAAS - LPV\/RNP,FMS (Dual Collins 3000),FMS\/GPS (Dual),FMS - Honeywell GNS-XLS,FMS (LPV Collins),FMS - Universal,FMS w\/ WAAS\/LPV,FMZ-2000 Software Version 6.1,FSU 5010 Dual Collins,G1000 Nxi,Garmin 1000,Garmin 1000NXI,Garmin 3000 (Option from 2009 to 2013),Garmin 400,Garmin 400\/430\/530,Garmin 430,Garmin 5000,Garmin 530,Garmin 600,Garmin 750,Garmin G1000,Garmin G1000 NXI,Garmin G600TXI,Garmin G600 TXI w\/ Dual 750,Garmin GPS 400,Garmin GPS 500,Garmin solid-state weather radar (GWX 70,Garmin SVT,Garmin Synthetic Vision,Garmin TAWS (Class A),Garmin TCAS II (GTS 8000),Garmin VHF Datalink (GDR 66),Global AFIS,Global Choice Avionics (USA),Global Regulatory Package (Operational),GNS-X FMS,GNSXLS,GNS-X or UNS-1K,GPS,GPS 500,GPS-500,GPS Garmin 400,GPS Garmin 430,GPS Garmin 530,GPWS,Graphical XM Weather,Ground Clutter Suppression and Turbulence Detection,GWX 3001 Sat Graph Wx,GWX-3001 Sat Graph WX,GWX3001 Sat Graph WX,GWX 5000 ACARS w\/Graph Wx,Heads up Display,Heads Up Display,Heads-Up Display,Heads-Up-Display (05),Heads-Up-Display (99 to 01),Heads-Up Guidance,Heads Up Guidance (HUD),HF,HF9000,HF-9000,HF-9000 Comm,HF9000 w\/SELCAL,HF 900 w\/SELCAL,HF 9031A w\/selcal,HF Comm,HF Comm Provisions,HF Communication,HF - Dual HF & SELCAL,HF - Dual +Selcal,HF (KHF - 950),HF KHF-950 HF Radio,HF - Single HF & SELCAL,HF - Single + Selcal,High Altitude landing and Takeoff,Honeywell Epic Avionics Suite,Honeywell Mark V EGPWS,Honeywell Mark VIII EGPWS,Honeywell Primus 1000,Honeywell Primus Elite (DU-875),Honeywell Solid State Flight Data Recorder (SSFDR),Honeywell TCAS 1,HUD,HUD \/ EVS,HUD (Head Up Display),HUD - Provisions,HUD & Synthetic Vision Guidance System,IESI,IFIS,Increase MTOW to 21,500lbs,Installation of ADS-B Out v2 (DO-260B) per STC,IRS (Inertial Reference System),IRS - Single Inertial Reference System,Jeppesen ChartView,Jeppesen Chart View (Electronic),KHF-1050,KHF-1050 High Frequency Radio,KHF 1050 w\/ SELCAL,KLN90B,KLN90B \/ KLN900,L3 SkyWatch TCAS 1,Laseref III to IV Upgrade,Laseref IV Upgrade,Laseref VI IRS,Lasernav,Lightning Detection,Lightning Detection System,Lightning Sensor,Lightning Sensor System,Lightning Sensor System (LSS),Link Grph WX & VDL Mode S,Meggitt Mark II SFD,Mode S Transponders w\/ Enhanced,Mode S Trspnd (2nd),Mode S Trspnd (2nd) w\/Diversity,Mode S Trspnd w\/Diversity (ADS-B Out),NO 2nd DME,NO ADS-B OUT,No Freon Air,NO Garmin 3000 (2014 or newer),No Heads-Up-Display (02 to 04),NO HUD,NO Sperry 5\" FCS,No TCAS II,NO TCAS II,Nxi Avionics Upgrade,Oceanic Package,Only 1 FMS,Paperless Operation Capability,PFD\/MFD,Plane Deck,PlaneDeck DU-885 w\/ PDSV,Precision Plus Avionics Upgrade,Predictive Wind Shear,Primus Elite Advanced Features,Primus Elite Cockpit Display Upgrade,Primus Elite DU-875 Upgrade,Primus II Radio Pkg,Primus Wx Radar-880 (Weather),Professional World Package,Pro Line 21,Pro-Line 21,Proline 21 Advanced (w\/ ADS-B Out),Proline 21 Dual IFIS,Pro-Line 21 IDS 4-Tube,Pro line Fusion,Proline Fusion (Standard After SN 9457),Quick Access Recorder,RAAS,Radar Altimeter,Radio Alt,RNP AR 0.1,Rockwell Collins Pro Line Fusion,RVSM,RVSM Compliant,Satellite AFIS,Satellite Datalink Weather (XM(R)),Satellite\/XM Weather,Secondary (FDR) System,Second Autothrottle,Second DME,Second FMS,Second FMS- 3000 Collins,Second HF,Second Radio Altimeter,Secureplane HD Camera System,Single HF Comm w\/ SELCAL,Situational Awareness Package,Skywatch,Skywatch HP,Standby Gyro,Steep Approach Capability,Stormscope,Stormscope (Goodrich WX-1000E),Stormscope WX1000,Stormscope WX1000+,Surface Management,Surface Management System,Synthetic Vision,Synthetic Vision Guidance System,Synthetic Vision Guidance System (SVGS),Synthetic Vision System,Synthetic Vision Technology (SVT),Sythetic Vision System,TAWS Class A,Taws Class A (TCAS II),TAWS Class B,Taws Class B (TCAS I),TCAS,TCAS 4000\/II,TCAS-4000\/TCAS II,TCAS 4000 w\/ID,TCAS 7.1,TCAS I,TCAS II,TCAS II 4000,TCAS II 7.1,TCAS II Change 7.1,TCAS II\/TCAS 4000,TCAS II Version 7.1,TCAS II w\/Ch 7,TCAS II w\/Ch 7.1,TCAS II (w\/change 7.1),TCAS II w\/Change 7.1,TCAS II w\/Chg 7.1,TCAS Version 7.1,Tempus IC Telemedicine Monitor,Third Display Collins Pro-line 21,Third VHF,Trimble GPS,TWR-850,TWR-850 Turb Radar,TWR-850 Turbulence,TWR-850 Weather Radar,TWR-850 Wx Radar,UniLink w\/ VHF,Universal 890R 3-Tube Display,Universal 890R 4-Tube Display,Universal EFI-890R 3 Tube,Universal EFI-890R 4-tube,Universal EFI-890R Avionics Upgrade,Universal FMS,Universal FMSC,Universal FMS with WAAS,Universal Insight Avionics,Universal Unilink System,Universal UNS1C or D,Universal WX,UNS-1EW FMS,UNS-1Ew-WAAS,UNS-1Ew w\/ WAAS and ProLine4,UNS-1K,UNS-1L,UNSID,US WX,US WX w\/ACARS,VHF Datalink,VHF - Third transceiver,VHF - third VHF,WAAS,WAAS (Dual UNS 1Ew),WAAS \/ LPV,WAAS-LPV,WAAS\/LPV,WAAS w\/LPV,Weather,Weather Radar,Windshear Det Equip,With Charts,With Weather,World WX w\/ACARS,WX1000E,Wx 1000E (L3),WX-1000E Lighting Detection,WX-1000E Stormscope,WX1000E Stormscope,WX RTA-852 Turbulence WX,WX w\/Graph,Wx XM Universal Graphic,XM Broadcast Wx Display,XM Graphical Weather,XM Weather,XM Weather (ASC 085),XM weather datalink,XM Weather Data-Link,XM Wx,XM WX,XM Wx - Single IFIS}"
+            },
+            {
+                "category": "Cabin",
+                "features": "{Alto Aviation CMS,Alto Cabin Audio System Upgrade,Audio Entertainment Package,Audio Video DIstribution System,AVDS CMS,AVDS CMS Upgrade,CMS - Venue,Collins Tailwinds 550\/Direct TV,Collins Venue CMS,Elite Interior (Option),Enhanced Cabin Management System,Enhanced CMS,Gulfstream Cabin Management System GEN 2 Upgrade,Honeywell Ovation CMS,Honeywell Ovation Select,Ovation Select Cabin Management System,Premium Cabin Management,Premium CMS,Rockwell Collins Venue,Rockwell Collins Venue CMS,Satellite TV,Security System Installation,Venue Cabin Management System}"
+            },
+            {
+                "category": "Communication & Internet",
+                "features": "{3D Maps,Aerowave,AFIS w SATCOM,Aircell Phone,Aircell ST-3100,ATG 2000,ATG - 4000 \/ 5000,ATG High Speed Data,Avance L3,Avance L5,Avance LX5,Broadband Multi-Link System,Flightfone,Flight Phone,FliteFone 800,Garmin 5000,High Frequency Radio,High Speed Data,Immarsat Ka (Honeywell Jetwave),Immarsat Ka (Satcom Direct),Iridium Aircell Axxess,KA Band High Speed Data,Phone,Phone System,SATCOM,Satcom Direct Router,Satellite Phone,SATPHONE,ST3100 Aircell,Starlink,Swift Broadband,Universal Phone & Datalink,VIASAT KA,Viasat Ku,XM Radio}"
+            },
+            {
+                "category": "Engines",
+                "features": "{-3C Engine,3D Engine Mod,50 Dash 4 Engine Upgrade,APU,AR Engines,AutoThrottles,Blackhawk PT6 Conversion,Blackhawk XP67A,BR Engine Mod,Engine Fire Extinguisher,Engine Service Program,EX Model,Extended Range Mod,Extra LR Mod,HUMS,No APU,No Auto Throttle,NO Engine Service Program,NO Thrust Reversers,PT6A-28 Engines,PT6A-67P Engine Upgrade,Stage 3 Hush Kit System,Thrust Reversers,Thrust Reverser Upgrade}"
+            },
+            {
+                "category": "Entertainment",
+                "features": "{Collins Venue CMS,Radio Altimeter}"
+            },
+            {
+                "category": "Interior",
+                "features": "{10 Passenger,10 Passengers,110V Outlets,115 VAC Outlet Conversion,18 Pax,36 Inch Entrance,5th seat,6 Pax,6 Pax (Full Wet Galley),7th Seat,8 Passenger,Aft Belted Lavatory,Aft Conference Group,AFT Conference Group,Aft Divan,AFT DIVAN,Aft Fuselage Locker,AFT Galley,AFT State Room (With Bed),Belted Lav,Belted Toilet,Bulkheads with Electrically-Operated Pocket Door between Seating Areas - Gulfstream,Cabin LED Lights - Gulfstream,Cargo,Cockpit\/Cabin Pocket Door,Commuter,Conference Group (non-standard),Crew Lavatory FWD,Crew Rest,Crew Rest Area,Divan,Divan Configuration,Double Club,Electric pocket door,Electric Pocket Door,Electric Window Blinds,Elite Interior (Option),Enhanced Soundproofing,Executive Configuration (6+2),Extended Cabin,External AFT Baggage,Fixed Bed,Forward Crew Lavatory,Forward Galley,Forward Hard Door,Forward Pocket Door - Duncan Aviation,Freon Air,Freon Air Conditioning,FWD 2 Place Divan,Fwd Lav ONLY,Galley - AFT,Galley\/Cabin Pocket Door,Galley - FWD,Galley Pocket Door,Jump Seat,Lav,Lavatory Sink,Lav Sink,MedEvac,NO Crew Rest Area,NO Executive Configuration,NO Forward Crew Lavatory,Non-Standard Configuration,Non-Standard Layout,Outlets-(110V),Premium Interior Lighting Package,Premium Passenger door,Premium Seat,Quiet Cabin,Refreshment center,Rigid Lav Door,Shower,Shuttle Configuration,Side Facing Divan,Side Facing Seat,Side-Facing Seat,Signature Interior Upgrade,Single Side Facing Seat,Skydiving,Solid Aft Cabin Door,Soundproofing Insulation,Soundproofing Upgrade,Stateroom,Stone Flooring Installation - Gulfstream,Utility \/ Medevac,VIP,VIP Configuration}"
+            },
+            {
+                "category": "Maintenance Programs",
+                "features": "{Camp,CAMP,Cescom,CESCOM,FalconCare,Landing Gear Ohl,MSG-3 Maintenance Prog,MSG-3 Maintenance Program,Proparts,ProParts,RVSM,RVSM Compliant,Smart Parts,SmartParts-YES}"
+            },
+            {
+                "category": "Mods",
+                "features": "{Aft Baggage Mod,Blackhawk Modification,Cargo Door,Eagle Wing Mod,Embellisher Mod,Enhanced Soundproofing,ER Mod,Extended Range Mod,Freon Air,GW Mod,Max T\/O Increase,Raisbeck Mods,RVSM,RVSM Compliant,Sierra Eagle II Mod,Single Point Refueling,Supplemental Freon Cooling,Turbofan Props Mod,WAAS Capable,Winglets,XPR Modification}"
+            },
+            {
+                "category": "Security",
+                "features": "{Artex C406-2 ELT,EVAS}"
+            },
+            {
+                "category": "Unassigned",
+                "features": "{Block Point Upgrade Not Complete,Long Range Oxy 3000ltr,Pulse Lights}"
+            }
+        ]"""
+
+    @property
+    def SYNC_DATABASE_URL(self) -> str:
+        return (
+            f"postgresql://{self.DATABASE_USERNAME}:{self.DATABASE_PASSWORD}"
+            f"@{self.DATABASE_HOSTNAME}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+        )
+
+
+settings = Config()
